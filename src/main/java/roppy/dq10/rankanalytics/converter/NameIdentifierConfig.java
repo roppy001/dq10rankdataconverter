@@ -11,7 +11,7 @@ public enum NameIdentifierConfig {
     BATTLE_PENCIL(false,false,2000,0),
     FISHING_TOP(true,false,50000,0),
     FISHING_BOTTOM(true,true,0,-10000),
-    DAIFUGO(false,false,600,-150),
+    DAIFUGO(false,false,400,-300),
     CASINORAID_POKER(true,false,1000000,0),
     CASINORAID_SLOT(true,false,500000,0),
     CASINORAID_ROULETTE(true,false,500000,0);
