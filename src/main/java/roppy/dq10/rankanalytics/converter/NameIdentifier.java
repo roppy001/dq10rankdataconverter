@@ -58,8 +58,9 @@ public class NameIdentifier {
             // 次のランキングに残った人のidを保存
             Set<Integer> nextIdSet = new HashSet<>();
 
-            // 更新低頻度レース(カジノレイド、釣り等)の場合は同ポイント同表示名を優先割付する
+            // 更新低頻度レース(カジノレイド、釣り等)の場合
             if(config.isLowChangeFrequency()) {
+                // 同ポイント同表示名を優先割付する
                 for(int currentIndex = 0 ; currentIndex < currentSnapshot.getRankList().size();currentIndex++){
                     RankItem currentItem = currentSnapshot.getRankList().get(currentIndex);
                     DisplayName currentDisplayName = subrace.getDisplayNameList().get(currentItem.getId());
@@ -67,7 +68,23 @@ public class NameIdentifier {
                         RankItem nextItem = nextSnapshot.getRankList().get(nextIndex);
                         if(currentItem.getPoint() == nextItem.getPoint()
                                 && currentDisplayName.getName().equals(nextItem.getName())
-                                && !nextItem.isAnonymous()
+                                && nextItem.getId() == INITIAL_ID ){
+                            nextItem.setId(currentItem.getId());
+                            nextIdSet.add(currentItem.getId());
+                            assignedList.set(currentIndex,true);
+                            break;
+                        }
+                    }
+                }
+
+                // 同ポイントで、片方内緒のケースの割り当てを行う
+                for(int currentIndex = 0 ; currentIndex < currentSnapshot.getRankList().size();currentIndex++){
+                    RankItem currentItem = currentSnapshot.getRankList().get(currentIndex);
+                    DisplayName currentDisplayName = subrace.getDisplayNameList().get(currentItem.getId());
+                    for(int nextIndex = 0 ; nextIndex < nextSnapshot.getRankList().size();nextIndex++){
+                        RankItem nextItem = nextSnapshot.getRankList().get(nextIndex);
+                        if(currentItem.getPoint() == nextItem.getPoint()
+                                && (currentItem.isAnonymous() || nextItem.isAnonymous())
                                 && nextItem.getId() == INITIAL_ID ){
                             nextItem.setId(currentItem.getId());
                             nextIdSet.add(currentItem.getId());
@@ -101,7 +118,7 @@ public class NameIdentifier {
             }
 
             // 内緒の人の割り当てを行う
-            // 点数が閾値以内にあるとして、
+            // 点数が閾値以内にあり、更新低頻度レース(カジノレイド、釣り等)ではない場合において、
             // 前後ともに内緒
             // or (前後どちらかが内緒 かつ
             //    ((次のポイントが(現在の最下位値 + 差分上限値)よりも上 かつ 逆順フラグがfalse)
@@ -113,6 +130,7 @@ public class NameIdentifier {
                         RankItem nextItem = nextSnapshot.getRankList().get(nextIndex);
                         if(currentItem.getPoint() + config.getPointDiffUpperLimit() >= nextItem.getPoint()
                                 && currentItem.getPoint() + config.getPointDiffLowerLimit() <= nextItem.getPoint()
+                                && !config.isLowChangeFrequency()
                                 && ((currentItem.isAnonymous() && nextItem.isAnonymous())
                                  || ((currentItem.isAnonymous() || nextItem.isAnonymous())
                                   && ((currentLowestItemPoint + config.getPointDiffUpperLimit() <= nextItem.getPoint()
