@@ -16,6 +16,8 @@ public enum RaceConfig {
             NameIdentifierConfig.BATTLE_TRINITY,NameIdentifierConfig.BATTLE_TRINITY}),
     DAIFUGO("daifugo", 70, new NameIdentifierConfig[]{
             NameIdentifierConfig.DAIFUGO}),
+    DAIFUGOM("daifugom", 70, new NameIdentifierConfig[]{
+            NameIdentifierConfig.DAIFUGOM}),
     CASINORAID("casinoraid", 1000, new NameIdentifierConfig[]{
             NameIdentifierConfig.CASINORAID_POKER,NameIdentifierConfig.CASINORAID_SLOT,
             NameIdentifierConfig.CASINORAID_ROULETTE});
