@@ -20,7 +20,7 @@ public enum RaceConfig {
             NameIdentifierConfig.DAIFUGOM}),
     CASINORAID("casinoraid", 1000, new NameIdentifierConfig[]{
             NameIdentifierConfig.CASINORAID_POKER,NameIdentifierConfig.CASINORAID_SLOT,
-            NameIdentifierConfig.CASINORAID_ROULETTE});
+            NameIdentifierConfig.CASINORAID_ROULETTE,NameIdentifierConfig.CASINORAID_BINGO});
 
     // S3のオブジェクトキーのプレフィックスと同一
     private String key;

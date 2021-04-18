@@ -15,7 +15,8 @@ public enum NameIdentifierConfig {
     DAIFUGOM(false,false,400,-300),
     CASINORAID_POKER(true,false,1000000,0),
     CASINORAID_SLOT(true,false,500000,0),
-    CASINORAID_ROULETTE(true,false,500000,0);
+    CASINORAID_ROULETTE(true,false,500000,0),
+    CASINORAID_BINGO(true,false,500000,0);
 
 
     // 名前とポイントが同じキャラを優先的に紐づけるか否か
