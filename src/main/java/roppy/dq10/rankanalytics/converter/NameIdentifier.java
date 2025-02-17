@@ -163,6 +163,7 @@ public class NameIdentifier {
                         if(!nextIdSet.contains(j) && !displayName.isAnonymous()
                                 && displayName.getName().equals(item.getName())) {
                             item.setId(j);
+                            nextIdSet.add(j);
                             break;
                         }
                     }
@@ -170,6 +171,7 @@ public class NameIdentifier {
                 if(item.getId() == INITIAL_ID) {
                     int id = createNewDisplayName(subrace, item.getName(), item.isAnonymous());
                     item.setId(id);
+                    nextIdSet.add(id);
                 }
             }
         }

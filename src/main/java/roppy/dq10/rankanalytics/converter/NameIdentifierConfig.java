@@ -6,16 +6,16 @@ import lombok.Getter;
 @AllArgsConstructor
 @Getter
 public enum NameIdentifierConfig {
-    SLIMERACE(false,false,32000000,-2000000),
+    SLIMERACE(false,false,43000000,-2000000),
     BATTLE_TRINITY(false,false,60,0),
-    BATTLE_PENCIL(false,false,2000,0),
+    BATTLE_PENCIL(false,false,6000,-1000),
     FISHING_TOP(true,false,50000,0),
     FISHING_BOTTOM(true,true,0,-10000),
     DAIFUGO(false,false,400,-300),
     DAIFUGOM(false,false,400,-300),
     CASINORAID_POKER(true,false,1000000,0),
     CASINORAID_SLOT(true,false,500000,0),
-    CASINORAID_ROULETTE(true,false,500000,0),
+    CASINORAID_ROULETTE(true,false,1200000,0),
     CASINORAID_BINGO(true,false,500000,0);
 
 
