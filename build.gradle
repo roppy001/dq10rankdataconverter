@@ -4,15 +4,20 @@ plugins {
 }
 
 wrapper {
-    gradleVersion = '5.6.4'
+    gradleVersion = '8.10.2'
 }
 
 group 'roppy.dq10.rankanalytics.converter'
 version '1.0.0-SNAPSHOT'
 
-sourceCompatibility = 1.8
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
 
-mainClassName = 'roppy.dq10.rankanalytics.converter.RankConverterMain'
+application {
+    mainClass = 'roppy.dq10.rankanalytics.converter.RankConverterMain'
+}
 
 repositories {
     mavenCentral()
@@ -26,14 +31,15 @@ dependencies {
     implementation 'software.amazon.awssdk:s3'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.10.2'
     implementation group: 'commons-net', name: 'commons-net', version: '3.6'
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-    compileOnly 'org.projectlombok:lombok:1.16.10'
-    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: "1.16.10"
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.34'
 }
 
 jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
-        attributes('Main-Class': mainClassName)
+        attributes('Main-Class': application.mainClass.get())
     }
     from configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) }
 }
