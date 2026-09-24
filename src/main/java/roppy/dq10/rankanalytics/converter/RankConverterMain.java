@@ -37,6 +37,18 @@ public class RankConverterMain implements RequestHandler<S3Event, Object> {
         return new Object();
     }
 
+    // テスト起動用ハンドラ。Lambdaのハンドラ設定を
+    // roppy.dq10.rankanalytics.converter.RankConverterMain::handleTestRequest
+    // に切り替えて {"raceKey":"slimerace","round":5} のようなJSONで直接呼び出す
+    public Object handleTestRequest(RaceRoundInput input, Context context) {
+        try {
+            execute(resolveRaceConfig(input.getRaceKey()), input.getRound());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return new Object();
+    }
+
     // RANK_RACEKEY
     // RANK_ROUND
 
@@ -48,13 +60,7 @@ public class RankConverterMain implements RequestHandler<S3Event, Object> {
             raceKey = args[0];
         }
 
-        if (!RACE_CONFIG_MAP.containsKey(raceKey)) {
-            System.out.println("scraper key list");
-            for (RaceConfig r : RaceConfig.values()) {
-                System.out.println(r.getKey());
-            }
-            throw new InitializationException("Unknown racekey:" + raceKey);
-        }
+        RaceConfig raceConfig = resolveRaceConfig(raceKey);
 
         int round;
         try {
@@ -68,8 +74,20 @@ public class RankConverterMain implements RequestHandler<S3Event, Object> {
         }
 
         RankConverterMain main = new RankConverterMain();
-        main.execute(RACE_CONFIG_MAP.get(raceKey), round);
+        main.execute(raceConfig, round);
 
+    }
+
+    private static RaceConfig resolveRaceConfig(String raceKey) throws InitializationException {
+        RaceConfig raceConfig = RACE_CONFIG_MAP.get(raceKey);
+        if (raceConfig == null) {
+            System.out.println("race key list");
+            for (RaceConfig r : RaceConfig.values()) {
+                System.out.println(r.getKey());
+            }
+            throw new InitializationException("Unknown racekey:" + raceKey);
+        }
+        return raceConfig;
     }
 
     public void execute(RaceConfig raceConfig, int round) throws Exception {
