@@ -4,18 +4,13 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
-import org.apache.http.client.protocol.RequestAcceptEncoding;
 import roppy.dq10.rankanalytics.converter.dto.Race;
 import roppy.dq10.rankanalytics.converter.dto.Subrace;
-import roppy.dq10.rankanalytics.converter.dto.RankItem;
 import roppy.dq10.rankanalytics.converter.dto.RankSnapshot;
 
 import java.io.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
