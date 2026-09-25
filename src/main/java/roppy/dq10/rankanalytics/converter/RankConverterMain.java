@@ -3,10 +3,13 @@ package roppy.dq10.rankanalytics.converter;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
+import roppy.dq10.rankanalytics.converter.dto.PromptPayload;
 import roppy.dq10.rankanalytics.converter.dto.Race;
+import roppy.dq10.rankanalytics.converter.dto.RaceRoundConfig;
 import roppy.dq10.rankanalytics.converter.dto.Subrace;
 import roppy.dq10.rankanalytics.converter.dto.RankSnapshot;
 
@@ -14,7 +17,10 @@ import java.io.*;
 import java.util.*;
 import java.util.zip.GZIPOutputStream;
 
-public class RankConverterMain implements RequestHandler<S3Event, Object> {
+// Lambdaのハンドラ設定は roppy.dq10.rankanalytics.converter.RankConverterMain::handleRequest のまま、
+// S3イベント起動({"Records":[...]}形式)と、テスト起動({"raceKey":"slimerace","round":5}形式)の両方を扱う。
+// 入力の型をJacksonが自動判定できないため、一旦Map<String,Object>で受け取り、"Records"キーの有無で判定する
+public class RankConverterMain implements RequestHandler<Map<String, Object>, Object> {
     private static final Map<String,RaceConfig> RACE_CONFIG_MAP;
     static {
         Map<String,RaceConfig> m = new HashMap<>();
@@ -24,25 +30,28 @@ public class RankConverterMain implements RequestHandler<S3Event, Object> {
         RACE_CONFIG_MAP = Collections.unmodifiableMap(m);
     }
 
+    private static final ObjectMapper LAMBDA_INPUT_MAPPER = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
     @Override
-    public Object handleRequest(S3Event input, Context context) {
-        try{
-            String key = input.getRecords().get(0).getS3().getObject().getKey();
-            String [] tokens = key.split("/",-1);
-            execute(RACE_CONFIG_MAP.get(tokens[0]),Integer.parseInt(tokens[1]));
-
-        }catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return new Object();
-    }
-
-    // テスト起動用ハンドラ。Lambdaのハンドラ設定を
-    // roppy.dq10.rankanalytics.converter.RankConverterMain::handleTestRequest
-    // に切り替えて {"raceKey":"slimerace","round":5} のようなJSONで直接呼び出す
-    public Object handleTestRequest(RaceRoundInput input, Context context) {
+    public Object handleRequest(Map<String, Object> input, Context context) {
         try {
-            execute(resolveRaceConfig(input.getRaceKey()), input.getRound());
+            RaceConfig raceConfig;
+            int round;
+
+            if (input.containsKey("Records")) {
+                S3Event s3Event = LAMBDA_INPUT_MAPPER.convertValue(input, S3Event.class);
+                String key = s3Event.getRecords().get(0).getS3().getObject().getKey();
+                String [] tokens = key.split("/",-1);
+                raceConfig = resolveRaceConfig(tokens[0]);
+                round = Integer.parseInt(tokens[1]);
+            } else {
+                RaceRoundInput raceRoundInput = LAMBDA_INPUT_MAPPER.convertValue(input, RaceRoundInput.class);
+                raceConfig = resolveRaceConfig(raceRoundInput.getRaceKey());
+                round = raceRoundInput.getRound();
+            }
+
+            execute(raceConfig, round);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -78,6 +87,17 @@ public class RankConverterMain implements RequestHandler<S3Event, Object> {
 
     }
 
+    private static Set<String> parseDisabledRaceKeys(String envValue) {
+        if (envValue == null || envValue.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> keys = new HashSet<>();
+        for (String token : envValue.split(",")) {
+            keys.add(token.trim());
+        }
+        return keys;
+    }
+
     private static RaceConfig resolveRaceConfig(String raceKey) throws InitializationException {
         RaceConfig raceConfig = RACE_CONFIG_MAP.get(raceKey);
         if (raceConfig == null) {
@@ -110,6 +130,33 @@ public class RankConverterMain implements RequestHandler<S3Event, Object> {
                     snapshotList.size()));
         }
 
+        // AI解説文を生成する(環境変数DISABLE_AI_SUMMARY_RACESで無効化されたレースはスキップ)
+        if (!parseDisabledRaceKeys(System.getenv("DISABLE_AI_SUMMARY_RACES")).contains(raceConfig.getKey())) {
+            // レース+回ごとの設定(ボーダー順位・開催期間等)はSubraceに依らず共通のため、ループの外で1回だけ取得する
+            RaceRoundConfig raceRoundConfig = null;
+            String raceRoundConfigError = null;
+            try {
+                raceRoundConfig = RaceRoundConfigLoader.getInstance().load(raceConfig, round);
+            } catch (Exception e) {
+                raceRoundConfigError = e.getMessage() != null ? e.getMessage() : e.toString();
+            }
+
+            PromptSnapshotSelector promptSnapshotSelector = PromptSnapshotSelector.getInstance();
+            OpenAiClient openAiClient = OpenAiClient.getInstance();
+            for (int i = 0; i < race.getSubraceList().size(); i++) {
+                Subrace subrace = race.getSubraceList().get(i);
+                if (raceRoundConfig == null) {
+                    subrace.setAiSummaryError(raceRoundConfigError);
+                    continue;
+                }
+                try {
+                    PromptPayload payload = promptSnapshotSelector.select(subrace, raceConfig, raceRoundConfig, round, i);
+                    subrace.setAiSummary(openAiClient.generateSummary(raceConfig, raceRoundConfig, payload));
+                } catch (Exception e) {
+                    subrace.setAiSummaryError(e.getMessage() != null ? e.getMessage() : e.toString());
+                }
+            }
+        }
 
         // JSON形式のデータを作成後、GZIP圧縮
         ObjectMapper om = new ObjectMapper();
